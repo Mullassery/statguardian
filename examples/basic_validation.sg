@@ -1,0 +1,32 @@
+// StatGuard DSL example: basic user data contract
+// Run with: statguard validate --contract basic_validation.sg --file users.parquet
+
+dataset users {
+    schema {
+        id:         int,    not_null, unique, primary_key
+        email:      string, regex="^[^@]+@[^@]+\.[^@]+$"
+        age:        int,    between(0, 120)
+        country:    string, not_null, enum=["US","UK","DE","FR","CA","AU","JP"]
+        score:      float,  min=0.0, max=1.0
+        created_at: datetime
+    }
+
+    quality {
+        completeness(id)      > 0.999
+        completeness(email)   > 0.99
+        @warning: uniqueness(email) == 1.0
+        @blocking: uniqueness(id)   == 1.0
+    }
+
+    stats {
+        age.mean   drift < 0.10
+        age.std    drift < 0.20
+        score.mean drift < 0.05
+    }
+
+    anomalies {
+        detect_outliers(age,   method="iqr")
+        detect_outliers(score, method="zscore")
+        @blocking: detect_duplicates(id)
+    }
+}

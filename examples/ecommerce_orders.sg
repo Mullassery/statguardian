@@ -1,0 +1,38 @@
+// StatGuard DSL example: e-commerce order pipeline
+// Demonstrates streaming config for Kafka-sourced events
+
+dataset orders {
+    schema {
+        order_id:   string, not_null, unique, len(10, 50)
+        customer_id: string, not_null
+        amount:     float,  positive, max=100000.0
+        currency:   string, not_null, enum=["USD","EUR","GBP","JPY","AUD"]
+        status:     string, not_null, enum=["pending","paid","cancelled","refunded"]
+        created_at: datetime, not_null
+    }
+
+    quality {
+        @blocking: completeness(order_id)    > 0.9999
+        @blocking: completeness(customer_id) > 0.9999
+        completeness(amount)                 > 0.999
+        @warning:  uniqueness(order_id)      == 1.0
+    }
+
+    stats {
+        amount.mean   drift < 0.15
+        amount.p95    drift < 0.25
+        amount.std    drift < 0.30
+    }
+
+    anomalies {
+        detect_outliers(amount, method="iqr")
+        @blocking: detect_duplicates(order_id)
+        detect_cardinality_explosion(currency)
+    }
+
+    stream {
+        window    = "5m"
+        watermark = "30s"
+        emit      = "on_window_close"
+    }
+}
