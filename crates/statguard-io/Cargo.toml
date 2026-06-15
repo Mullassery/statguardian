@@ -4,19 +4,37 @@ version.workspace = true
 edition.workspace = true
 authors.workspace = true
 license.workspace = true
-description = "Data ingestion layer for StatGuard (Parquet, Arrow IPC, CSV, JSON, Delta Lake, Iceberg)"
+description = "Data ingestion (Parquet, CSV, JSON, Arrow, Avro, ORC, Delta Lake, Iceberg, S3, GCS, Azure, SQL)"
 
 [dev-dependencies]
 tempfile = "3"
 
 [features]
 default = []
-# Enable Delta Lake table format support (delta-rs)
-delta   = ["dep:deltalake", "dep:tokio"]
-# Enable Apache Iceberg table format support
-iceberg = ["dep:tokio", "dep:reqwest"]
-# Enable both lakehouse formats
+
+# ── Cloud storage (all open-source SDKs: Apache-2.0 / MIT) ──────────────────
+# Enables Polars lazy readers for s3://, gs://, az:// URIs.
+s3     = ["polars/aws"]       # AWS S3 + S3-compatible (MinIO, Ceph, Cloudflare R2)
+gcs    = ["polars/gcp"]       # Google Cloud Storage (polars feature name: gcp)
+azure  = ["polars/azure"]     # Azure Blob Storage / ADLS Gen2
+cloud  = ["s3", "gcs", "azure"]
+
+# ── SQL databases (pure-Rust drivers, MIT/Apache-2.0, no ODBC) ──────────────
+# NOTE: Oracle and SQL Server are intentionally excluded — their official
+# drivers require proprietary ODBC/JDBC components (non-open-source).
+# Use the Python execute_sql() API with connectorx (MIT) for those if needed.
+sql-postgres = ["dep:sqlx", "dep:tokio", "sqlx/postgres"]
+sql-mysql    = ["dep:sqlx", "dep:tokio", "sqlx/mysql"]
+sql-sqlite   = ["dep:sqlx", "dep:tokio", "sqlx/sqlite"]
+sql          = ["sql-postgres", "sql-mysql", "sql-sqlite"]
+
+# ── Lakehouse formats ────────────────────────────────────────────────────────
+delta     = ["dep:tokio"]
+iceberg   = ["dep:tokio"]
 lakehouse = ["delta", "iceberg"]
+
+# ── Convenience bundles ──────────────────────────────────────────────────────
+full = ["cloud", "sql", "lakehouse"]
 
 [dependencies]
 statguard-core = { path = "../statguard-core" }
@@ -26,11 +44,7 @@ serde_json     = { workspace = true }
 thiserror      = { workspace = true }
 anyhow         = { workspace = true }
 
-# Optional: Delta Lake (delta-rs)
-deltalake = { version = "0.22", default-features = false, optional = true }
-
-# Optional: Apache Iceberg (metadata parsing + REST catalog)
-reqwest = { version = "0.12", default-features = false, features = ["blocking", "json"], optional = true }
-
-# Async runtime for Delta + Iceberg (optional, only pulled in with those features)
+# SQL: pure-Rust, MIT/Apache-2.0 — no ODBC/JDBC
+sqlx  = { version = "0.8", default-features = false,
+           features = ["runtime-tokio-rustls", "macros"], optional = true }
 tokio = { version = "1", features = ["rt-multi-thread", "macros"], optional = true }

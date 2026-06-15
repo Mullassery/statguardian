@@ -53,16 +53,30 @@ from ._statguard import (
     __version__,
 )
 
+# Python-layer connectors (open-source only — MIT / Apache-2.0)
+from ._connectors import (
+    execute_sql,    # PostgreSQL, MySQL, SQLite, BigQuery, Snowflake, Redshift, ...
+    execute_spark,  # PySpark DataFrames via Arrow bridge
+    execute_cloud,  # s3://, gs://, az:// — thin wrapper around execute_file
+)
+
 __all__ = [
+    # Core
     "DataContract",
     "ValidationReport",
     "execute",
     "execute_file",
     "execute_streaming",
+    # Lakehouse
     "execute_delta",
     "compare_delta_versions",
     "execute_iceberg",
     "list_iceberg_snapshots",
+    # Cloud + SQL + Spark
+    "execute_sql",
+    "execute_spark",
+    "execute_cloud",
+    # Utilities
     "validate_dsl",
     "__version__",
 ]

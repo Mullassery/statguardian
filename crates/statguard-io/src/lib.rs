@@ -1,8 +1,12 @@
+pub mod cloud;
 pub mod delta;
 pub mod iceberg;
+pub mod sql;
 
+pub use cloud::{CloudReader, is_cloud_uri};
 pub use delta::DeltaReader;
 pub use iceberg::{IcebergReader, IcebergDataFile, SnapshotInfo};
+pub use sql::{SqlReader, SqlBackend};
 
 use polars::prelude::*;
 use std::path::Path;
@@ -37,6 +41,11 @@ pub struct DataReader;
 
 impl DataReader {
     pub fn read_file(path: &str) -> IoResult<DataFrame> {
+        // Cloud URIs: route immediately to CloudReader
+        if is_cloud_uri(path) {
+            return CloudReader::read(path);
+        }
+
         let p = Path::new(path);
 
         // Directory-based formats (Delta, Iceberg) — detect before extension check
@@ -69,6 +78,19 @@ impl DataReader {
     /// Explicitly read an Apache Iceberg table directory.
     pub fn read_iceberg(path: &str) -> IoResult<DataFrame> {
         IcebergReader::read(path)
+    }
+
+    /// Read from a cloud URI (s3://, gs://, az://, abfss://).
+    /// Format is auto-detected from the URI extension.
+    pub fn read_cloud(uri: &str) -> IoResult<DataFrame> {
+        CloudReader::read(uri)
+    }
+
+    /// Execute a SQL query and return results as a DataFrame.
+    /// Supported natively: PostgreSQL, MySQL, SQLite.
+    /// Other backends: use Python `execute_sql()` with connectorx.
+    pub fn read_sql(query: &str, connection_url: &str) -> IoResult<DataFrame> {
+        SqlReader::read(query, connection_url)
     }
 
     pub fn read_parquet(path: &str) -> IoResult<DataFrame> {

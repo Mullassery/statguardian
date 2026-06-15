@@ -192,25 +192,24 @@ for i, r in enumerate(reports):
 
 ---
 
-## Format & table compatibility
+## Format, storage & connector compatibility
 
-StatGuard reads every major format natively — no external loaders, no Spark cluster needed.
+StatGuard reads every major format natively — no external loaders, no Spark cluster required.
 
-| Format | StatGuard | pandera | Great Expectations | Pydantic v2 |
+| | StatGuard | pandera | Great Expectations | Pydantic v2 |
 |---|---|---|---|---|
-| Parquet | ✓ native | ✓ via pandas | ✓ via pandas/Spark | ✗ load first |
-| CSV / TSV | ✓ native | ✓ via pandas | ✓ via pandas/Spark | ✗ load first |
-| JSON / NDJSON | ✓ native | ✓ via pandas | ✓ via pandas/Spark | ✓ native dicts |
-| Arrow IPC | ✓ native | ✓ via pyarrow | ✗ | ✗ load first |
-| Avro | ✓ native | ✓ via fastavro | ✓ via Spark | ✗ load first |
-| ORC | ✓ opt-in | ✓ via pyarrow | ✓ via Spark | ✗ load first |
-| **Delta Lake** | **✓ native** | ✗ | ✓ Spark required | ✗ |
-| **Apache Iceberg** | **✓ native** | ✗ | ✓ Spark required | ✗ |
+| **Files** (Parquet, CSV, JSON, Avro, ORC, Arrow IPC) | ✓ native | ✓ via pandas | ✓ via pandas | ✗ load first |
+| **Delta Lake** (no Spark) | ✓ | ✗ | ✗ | ✗ |
+| **Apache Iceberg** (no Spark) | ✓ | ✗ | ✗ | ✗ |
+| **Cloud** (S3, GCS, Azure) | ✓ | via extras | ✓ native | ✗ |
+| **Spark DataFrames** | ✓ Arrow bridge | ✓ | ✓ native | ✗ |
+| **Kafka** (streaming) | ✓ micro-batch | ✗ | ✗ | ✗ |
+| **Flink** (streaming) | ✓ via Flink Python | ✗ | ✗ | ✗ |
+| **Airflow** (orchestrator) | ✓ operator | ✗ | partial | ✗ |
+| **SQL / warehouses** | 13 OSS connectors | via SQLAlchemy | 12 connectors | ✗ |
+| OSS-only connectors | ✓ enforced | ✗ | ✗ | n/a |
 
-StatGuard is the only tool that reads Delta Lake and Iceberg **without PySpark**.
-Auto-detection: `execute_file(contract, path)` infers format from extension or directory structure.
-
-→ Full comparison: [docs/FORMAT_COMPATIBILITY.md](docs/FORMAT_COMPATIBILITY.md)
+→ Full matrix: [docs/FORMAT_COMPATIBILITY.md](docs/FORMAT_COMPATIBILITY.md)
 
 ---
 
