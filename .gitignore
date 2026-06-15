@@ -1,1 +1,12 @@
 target/
+dist/
+*.egg-info/
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+venv/
+.DS_Store
+*.whl
+*.so
+*.pyd
