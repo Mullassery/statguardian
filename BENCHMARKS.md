@@ -116,6 +116,13 @@ Data load time for 100 000 rows (validation not included):
 
 ---
 
+## Format & table format comparison
+
+See [docs/FORMAT_COMPATIBILITY.md](docs/FORMAT_COMPATIBILITY.md) for a full matrix of
+which file formats (Parquet, Avro, ORC, …), lakehouse formats (Delta Lake, Iceberg, Hudi),
+cloud storage backends, and SQL warehouses each library supports natively vs. via extras
+vs. not at all.
+
 ## Reproducing
 
 ```bash

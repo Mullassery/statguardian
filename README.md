@@ -192,18 +192,25 @@ for i, r in enumerate(reports):
 
 ---
 
-## Supported formats
+## Format & table compatibility
 
-| Format | Read | Auto-detect | Notes |
-|---|---|---|---|
-| Apache Parquet | ✓ | `.parquet` | default columnar format |
-| CSV / TSV | ✓ | `.csv`, `.tsv` | schema inference |
-| JSON / NDJSON | ✓ | `.json`, `.ndjson` | line-delimited supported |
-| Arrow IPC | ✓ | `.ipc`, `.arrow` | zero-copy |
-| Apache Avro | ✓ | `.avro` | via Polars avro feature |
-| Apache ORC | ✓ | `.orc` | compile with `--features orc` |
-| **Delta Lake** | ✓ | `_delta_log/` dir | time-travel by version or timestamp |
-| **Apache Iceberg** | ✓ | `metadata/` dir | v1 + v2, snapshot + branch refs |
+StatGuard reads every major format natively — no external loaders, no Spark cluster needed.
+
+| Format | StatGuard | pandera | Great Expectations | Pydantic v2 |
+|---|---|---|---|---|
+| Parquet | ✓ native | ✓ via pandas | ✓ via pandas/Spark | ✗ load first |
+| CSV / TSV | ✓ native | ✓ via pandas | ✓ via pandas/Spark | ✗ load first |
+| JSON / NDJSON | ✓ native | ✓ via pandas | ✓ via pandas/Spark | ✓ native dicts |
+| Arrow IPC | ✓ native | ✓ via pyarrow | ✗ | ✗ load first |
+| Avro | ✓ native | ✓ via fastavro | ✓ via Spark | ✗ load first |
+| ORC | ✓ opt-in | ✓ via pyarrow | ✓ via Spark | ✗ load first |
+| **Delta Lake** | **✓ native** | ✗ | ✓ Spark required | ✗ |
+| **Apache Iceberg** | **✓ native** | ✗ | ✓ Spark required | ✗ |
+
+StatGuard is the only tool that reads Delta Lake and Iceberg **without PySpark**.
+Auto-detection: `execute_file(contract, path)` infers format from extension or directory structure.
+
+→ Full comparison: [docs/FORMAT_COMPATIBILITY.md](docs/FORMAT_COMPATIBILITY.md)
 
 ---
 

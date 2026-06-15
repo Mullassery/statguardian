@@ -12,7 +12,8 @@ uv add statguard
 curl -sSfL https://raw.githubusercontent.com/Mullassery/statguard/main/install.sh | sh
 ```
 
-Full install guide: [INSTALL.md](INSTALL.md)
+Full install guide: [INSTALL.md](INSTALL.md)  
+Format compatibility vs pandera / GX / Pydantic: [docs/FORMAT_COMPATIBILITY.md](docs/FORMAT_COMPATIBILITY.md)
 
 ---
 
