@@ -514,6 +514,33 @@ All optional features use OSI-approved open-source licenses only. Proprietary dr
 
 ---
 
+## Roadmap
+
+**Connectors**
+- [ ] Kafka — streaming validation with micro-batch windows and watermarks
+- [ ] Apache Flink — native DataStream and Table API integration
+- [ ] Airflow operator — `StatGuardOperator` for pipeline-gate tasks
+- [ ] dbt test macro — run StatGuard contracts as dbt tests after model runs
+- [ ] GitHub Actions — `statguard-action` for contract validation in CI
+
+**DSL and rules**
+- [ ] Cross-column rules — `assert amount > 0 when status == "paid"`
+- [ ] Referential integrity — validate foreign keys across two datasets
+- [ ] PII detection — flag columns that look like emails, phone numbers, SSNs
+- [ ] Custom Python validators — plugin hook for rules that require Python logic
+- [ ] Schema evolution detection — warn when columns are added, removed, or retyped
+
+**Output and observability**
+- [ ] OpenTelemetry traces — emit spans per check for distributed tracing
+- [ ] HTML report — self-contained validation report for sharing
+- [ ] DataHub / OpenLineage lineage events on each validation run
+
+**Performance**
+- [ ] GPU-accelerated checks via RAPIDS cuDF for very large datasets
+- [ ] Parallel multi-file validation — validate a glob of Parquet files concurrently
+
+---
+
 ## Contributing
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md).
@@ -529,3 +556,4 @@ cargo fmt --all
 ## License
 
 MIT © 2026 [Georgi Mammen Mullassery](https://github.com/Mullassery)
+
