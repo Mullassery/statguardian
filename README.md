@@ -353,17 +353,17 @@ See [BENCHMARKS.md](BENCHMARKS.md) for full methodology, scaling table, and repr
 
 ## Format and connector compatibility
 
-| | StatGuard | pandera | Great Expectations | Pydantic v2 |
+| | pandera | Great Expectations | Pydantic v2 | **StatGuard** |
 |---|---|---|---|---|
-| **Files** (Parquet, CSV, JSON, Avro, ORC, Arrow IPC) | ✓ native | ✓ via pandas | ✓ via pandas | ✗ load first |
-| **Delta Lake** (no Spark) | ✓ | ✗ | ✗ | ✗ |
-| **Apache Iceberg** (no Spark) | ✓ | ✗ | ✗ | ✗ |
-| **Cloud** (S3, GCS, Azure) | ✓ | via extras | ✓ native | ✗ |
-| **Spark DataFrames** | ✓ Arrow bridge | ✓ | ✓ native | ✗ |
-| **SQL / warehouses** | 13 OSS connectors | via SQLAlchemy | 12 connectors | ✗ |
-| **Kafka** (roadmap) | planned | ✗ | ✗ | ✗ |
-| **Flink** (roadmap) | planned | ✗ | ✗ | ✗ |
-| **Airflow** (roadmap) | planned | ✗ | partial | ✗ |
+| **Files** (Parquet, CSV, JSON, Avro, ORC, Arrow IPC) | ✓ via pandas | ✓ via pandas | ✗ load first | ✓ native |
+| **Delta Lake** (no Spark) | ✗ | ✗ | ✗ | ✓ |
+| **Apache Iceberg** (no Spark) | ✗ | ✗ | ✗ | ✓ |
+| **Cloud** (S3, GCS, Azure) | via extras | ✓ native | ✗ | ✓ |
+| **Spark DataFrames** | ✓ | ✓ native | ✗ | ✓ Arrow bridge |
+| **SQL / warehouses** | via SQLAlchemy | 12 connectors | ✗ | 13 OSS connectors |
+| **Kafka** (roadmap) | ✗ | ✗ | ✗ | planned |
+| **Flink** (roadmap) | ✗ | ✗ | ✗ | planned |
+| **Airflow** (roadmap) | ✗ | partial | ✗ | planned |
 
 → Full matrix: [docs/FORMAT_COMPATIBILITY.md](docs/FORMAT_COMPATIBILITY.md)
 
