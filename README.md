@@ -1,61 +1,14 @@
 # StatGuard
 
-**Rust-native Data Quality, Validation & Statistical Drift Monitoring**
+**Data quality, validation, and statistical drift monitoring for production data pipelines — built in Rust.**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Version](https://img.shields.io/badge/version-0.1.0-blue)](https://github.com/Mullassery/statguard/releases)
 [![Rust](https://img.shields.io/badge/built%20with-Rust-orange.svg)](https://www.rust-lang.org)
 
-```bash
-pip install statguard                                              # pip
-uv add statguard                                                   # uv
-curl -sSfL https://raw.githubusercontent.com/Mullassery/statguard/main/install.sh | sh  # curl
-```
-
-StatGuard compiles a **declarative data contract DSL** into an optimised columnar execution plan, then validates your datasets — schema, quality rules, statistical drift, and anomalies — across every major data format and lakehouse table format, from a single definition.
+You write one contract file. StatGuard compiles it into an optimised columnar execution plan and validates your datasets — schema, quality rules, statistical drift, and anomalies — across every major file format and lakehouse table format.
 
 **Python is the frontend. Rust is the engine.**
-
----
-
-## Why StatGuard?
-
-| | Pydantic v2 | pandera | Great Expectations | WhyLogs | **StatGuard** |
-|---|---|---|---|---|---|
-| Performance | Row-by-row Python | Python/pandas | Python-heavy | Python | **Rust — 13–25× faster** |
-| Schema / type validation | ✓ | ✓ | ✓ | ✗ | ✓ |
-| Tabular quality rules | ✗ | ✓ | ✓ | ✗ | ✓ |
-| Drift detection (PSI + KS) | ✗ | ✗ | ✗ | ✓ | ✓ |
-| Anomaly detection | ✗ | ✗ | partial | partial | ✓ |
-| Delta Lake | ✗ | ✗ | ✗ | ✗ | ✓ |
-| Apache Iceberg | ✗ | ✗ | ✗ | ✗ | ✓ |
-| Avro / ORC | ✗ | ✗ | partial | ✗ | ✓ |
-| Streaming support | ✗ | ✗ | ✗ | partial | ✓ |
-| Single contract DSL | ✗ | ✗ | ✗ | ✗ | ✓ |
-| pip / uv install | ✓ | ✓ | ✓ | ✓ | ✓ |
-
----
-
-## Benchmarks
-
-**100 000 rows × 4 columns** · 5 checks (not_null · type · range · regex · uniqueness) · best-of-7 · Apple M-series:
-
-| Tool | Best | vs StatGuard |
-|---|---|---|
-| **StatGuard 0.1** (Rust/Polars) | **2.0 ms** | baseline |
-| Pure Python loops | 11.5 ms | 5.8× slower |
-| pandera 0.31 (pandas) | 26.5 ms | 13× slower |
-| **Pydantic v2** (TypeAdapter bulk) | **43.5 ms** | **22× slower** |
-| **Pydantic v2** (row-by-row) | **46.2 ms** | **23× slower** |
-| Great Expectations 1.18 | 50.4 ms | 25× slower |
-
-> Pydantic and Great Expectations land in the same performance tier (~43–50 ms).
-> Pydantic allocates one Python object per row regardless of batch size —
-> StatGuard never touches individual rows, operating on entire Arrow columns.
-
-See [BENCHMARKS.md](BENCHMARKS.md) for full numbers, scaling table, per-tool methodology, and reproduce steps.
-
----
 
 ## Install
 
@@ -65,13 +18,13 @@ uv add statguard
 curl -sSfL https://raw.githubusercontent.com/Mullassery/statguard/main/install.sh | sh
 ```
 
-See [INSTALL.md](INSTALL.md) for source builds (Rust required) and verification steps.
+See [INSTALL.md](INSTALL.md) for source builds and verification steps.
 
 ---
 
 ## Quick start
 
-### 1. Define a contract
+### 1. Write a contract
 
 ```
 # orders.sg
@@ -109,24 +62,20 @@ import statguard
 
 contract = statguard.DataContract.from_file("orders.sg")
 
-# ── Parquet / CSV / JSON / IPC / Avro / ORC — auto-detected from extension ──
+# Auto-detected from extension: Parquet, CSV, JSON, Avro, ORC, Arrow IPC, Delta, Iceberg
 report = statguard.execute_file(contract, "orders.parquet")
 report = statguard.execute_file(contract, "orders.csv")
 report = statguard.execute_file(contract, "orders.avro")
 
-# ── Delta Lake ──────────────────────────────────────────────────────────────
+# Delta Lake
 report = statguard.execute_delta(contract, "/data/orders_delta/")
+report = statguard.execute_delta(contract, "/data/orders_delta/", version=5)  # time travel
 
-# Time-travel by version
-report = statguard.execute_delta(contract, "/data/orders_delta/", version=5)
-
-# ── Apache Iceberg ──────────────────────────────────────────────────────────
+# Apache Iceberg
 report = statguard.execute_iceberg(contract, "/data/orders_iceberg/")
-
-# Time-travel by snapshot ID
 report = statguard.execute_iceberg(contract, "/data/orders_iceberg/", snapshot_id=9876543)
 
-# ── Polars DataFrame (in-memory) ────────────────────────────────────────────
+# Polars DataFrame (in-memory)
 df = pl.read_parquet("orders.parquet")
 report = statguard.execute(contract, df)
 
@@ -137,12 +86,12 @@ print(report.summary())
 ### 3. Drift detection
 
 ```python
-# Compare today vs yesterday (works for every format)
+# Compare today vs yesterday
 report = statguard.execute_delta(
     contract, "/data/orders_delta/",
-    version=10,                    # current
+    version=10,
     reference_path="/data/orders_delta/",
-    reference_version=9,           # baseline
+    reference_version=9,
 )
 
 # Iceberg snapshot comparison
@@ -157,27 +106,25 @@ for d in report.drift_results():
     print(f"{d['column']}.{d['stat']}: drift={d['drift']:.4f}  PSI={d['psi']:.4f}  KS={d['ks_stat']:.4f}")
 ```
 
-### 4. CLI (local files and lakehouse tables)
-
-The CLI validates local files and lakehouse tables. For cloud/SQL/Spark, use the Python API.
+### 4. CLI
 
 ```bash
-# Auto-detect format (Parquet, CSV, JSON, Avro, ORC, Arrow IPC, Delta, Iceberg)
+# Validate any format — auto-detected
 statguard validate --contract orders.sg --file orders.parquet
 statguard validate --contract orders.sg --file /data/orders_delta/
 statguard validate --contract orders.sg --file /data/orders_iceberg/
 
-# With drift reference
+# Drift: compare two datasets
 statguard validate --contract orders.sg --file today.parquet --reference yesterday.parquet
 
-# Output formats (summary, JSON, Prometheus)
+# Output formats
 statguard validate --contract orders.sg --file data.parquet --format json
 statguard validate --contract orders.sg --file data.parquet --format prometheus
 
 # Fail CI on any violation
 statguard validate --contract orders.sg --file data.parquet --fail-on-warning
 
-# DSL syntax check (linting)
+# DSL syntax check
 statguard check --contract orders.sg
 ```
 
@@ -186,7 +133,6 @@ statguard check --contract orders.sg
 ### 5. Streaming
 
 ```python
-# Process a large file in micro-batches
 reports = statguard.execute_streaming(contract, "huge.parquet", batch_size=50_000)
 for i, r in enumerate(reports):
     if not r.passed:
@@ -197,12 +143,11 @@ for i, r in enumerate(reports):
 ### 6. Cloud storage (S3, GCS, Azure)
 
 ```python
-# AWS S3, Google Cloud Storage, Azure Blob — credentials from env vars
 report = statguard.execute_cloud(contract, "s3://bucket/events/2026/06/*.parquet")
 report = statguard.execute_cloud(contract, "gs://bucket/events.csv")
 report = statguard.execute_cloud(contract, "az://container/data/")
 
-# Drift detection: compare two cloud datasets
+# Drift across two cloud datasets
 report = statguard.execute_cloud(
     contract,
     uri="s3://bucket/events/today/",
@@ -210,10 +155,10 @@ report = statguard.execute_cloud(
 )
 ```
 
-### 7. SQL databases & warehouses
+### 7. SQL databases and warehouses
 
 ```python
-# PostgreSQL, MySQL, SQLite (pure-Rust, fastest)
+# PostgreSQL, MySQL, SQLite (pure Rust)
 report = statguard.execute_sql(
     contract,
     connection_string="postgresql://user:pass@localhost:5432/mydb",
@@ -227,7 +172,7 @@ report = statguard.execute_sql(
     query="SELECT * FROM events LIMIT 1000000",
 )
 
-# Drift detection: compare two SQL queries
+# Drift between two SQL queries
 report = statguard.execute_sql(
     contract,
     connection_string="postgresql://localhost/db",
@@ -249,10 +194,9 @@ spark = SparkSession.builder \
 contract = statguard.DataContract.from_file("events.sg")
 spark_df = spark.read.parquet("s3a://bucket/events/")
 
-# Validate Spark DataFrame directly (Arrow zero-copy)
 report = statguard.execute_spark(contract, spark_df)
 
-# Drift detection between Spark DataFrames
+# Drift between Spark DataFrames
 today = spark.read.parquet("s3a://bucket/today/")
 yesterday = spark.read.parquet("s3a://bucket/yesterday/")
 report = statguard.execute_spark(contract, today, reference_spark_df=yesterday)
@@ -262,9 +206,44 @@ Works on: local, YARN, Kubernetes, Databricks, AWS EMR, Google Dataproc, Azure H
 
 ---
 
-## Format, storage & connector compatibility
+## Why not just use pandera or Great Expectations?
 
-StatGuard reads every major format natively — no external loaders, no Spark cluster required.
+You can — until the dataset is large, or you need drift detection, or you want one tool that covers files, Delta Lake, Iceberg, cloud storage, and SQL without gluing libraries together.
+
+**100,000 rows × 4 columns, 5 checks — Apple M-series:**
+
+| Tool | Best time | vs StatGuard |
+|---|---|---|
+| **StatGuard 0.1** | **2.0 ms** | baseline |
+| Pure Python loops | 11.5 ms | 5.8× slower |
+| pandera 0.31 (pandas) | 26.5 ms | 13× slower |
+| Pydantic v2 (TypeAdapter bulk) | 43.5 ms | 22× slower |
+| Pydantic v2 (row-by-row) | 46.2 ms | 23× slower |
+| Great Expectations 1.18 | 50.4 ms | 25× slower |
+
+> Pydantic allocates one Python object per row regardless of batch size. StatGuard never touches individual rows — it operates on entire Arrow columns.
+
+See [BENCHMARKS.md](BENCHMARKS.md) for full methodology, scaling table, and reproduce steps.
+
+**Feature comparison:**
+
+| | Pydantic v2 | pandera | Great Expectations | WhyLogs | **StatGuard** |
+|---|---|---|---|---|---|
+| Performance | Row-by-row Python | Python/pandas | Python-heavy | Python | **Rust — 13–25× faster** |
+| Schema / type validation | ✓ | ✓ | ✓ | ✗ | ✓ |
+| Tabular quality rules | ✗ | ✓ | ✓ | ✗ | ✓ |
+| Drift detection (PSI + KS) | ✗ | ✗ | ✗ | ✓ | ✓ |
+| Anomaly detection | ✗ | ✗ | partial | partial | ✓ |
+| Delta Lake (no Spark) | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Apache Iceberg (no Spark) | ✗ | ✗ | ✗ | ✗ | ✓ |
+| Avro / ORC | ✗ | ✗ | partial | ✗ | ✓ |
+| Streaming support | ✗ | ✗ | ✗ | partial | ✓ |
+| Single contract DSL | ✗ | ✗ | ✗ | ✗ | ✓ |
+| pip / uv install | ✓ | ✓ | ✓ | ✓ | ✓ |
+
+---
+
+## Format and connector compatibility
 
 | | StatGuard | pandera | Great Expectations | Pydantic v2 |
 |---|---|---|---|---|
@@ -274,12 +253,9 @@ StatGuard reads every major format natively — no external loaders, no Spark cl
 | **Cloud** (S3, GCS, Azure) | ✓ | via extras | ✓ native | ✗ |
 | **Spark DataFrames** | ✓ Arrow bridge | ✓ | ✓ native | ✗ |
 | **SQL / warehouses** | 13 OSS connectors | via SQLAlchemy | 12 connectors | ✗ |
-| **Kafka** (🗺️ roadmap) | planned | ✗ | ✗ | ✗ |
-| **Flink** (🗺️ roadmap) | planned | ✗ | ✗ | ✗ |
-| **Airflow** (🗺️ roadmap) | planned | ✗ | partial | ✗ |
-| **OSS-only connectors** | ✓ enforced | ✗ | ✗ | n/a |
-
-🗺️ = roadmap (planned, not yet released)
+| **Kafka** (roadmap) | planned | ✗ | ✗ | ✗ |
+| **Flink** (roadmap) | planned | ✗ | ✗ | ✗ |
+| **Airflow** (roadmap) | planned | ✗ | partial | ✗ |
 
 → Full matrix: [docs/FORMAT_COMPATIBILITY.md](docs/FORMAT_COMPATIBILITY.md)
 
@@ -313,6 +289,7 @@ dataset <name> {
 `int` · `float` · `string` · `bool` · `date` · `datetime` · `bytes`
 
 ### Constraints
+
 | Constraint | Example |
 |---|---|
 | `not_null` | `id: int, not_null` |
@@ -332,9 +309,10 @@ dataset <name> {
 ### Drift stat functions
 `mean` · `std` · `median` · `min` · `max` · `p05` · `p95` · `p99` · `p999`
 
-StatGuard always computes **PSI** (Population Stability Index) and **KS statistic** alongside every drift rule — no extra config needed.
+PSI and KS statistic are always computed alongside every drift rule — no extra config needed.
 
 ### Anomaly functions
+
 | Function | Description |
 |---|---|
 | `detect_outliers(col, method="iqr")` | IQR 1.5× rule or z-score > 3σ |
@@ -346,7 +324,7 @@ StatGuard always computes **PSI** (Population Stability Index) and **KS statisti
 ### Severity levels
 `@blocking` · `@error` (default) · `@warning` · `@info`
 
-Blocking violations abort further column checks and set `report.passed = False`.
+`@blocking` violations abort further column checks and set `report.passed = False`.
 
 ---
 
@@ -356,15 +334,15 @@ Blocking violations abort further column checks and set `report.passed = False`.
 import statguard
 
 # Compile contract
-contract = statguard.DataContract.from_dsl("...")  # from string
-contract = statguard.DataContract.from_file("path/to/contract.sg")
+contract = statguard.DataContract.from_dsl("...")       # from string
+contract = statguard.DataContract.from_file("orders.sg")
 
 # Execute (returns ValidationReport)
 statguard.execute(contract, polars_df, reference=None)
 statguard.execute_file(contract, path, reference_path=None)
 statguard.execute_streaming(contract, path, batch_size=10_000)
 
-# Lakehouse formats
+# Lakehouse
 statguard.execute_delta(contract, table_path, version=None,
                         reference_path=None, reference_version=None)
 statguard.compare_delta_versions(contract, table_path, ref_v, cur_v=None)
@@ -372,29 +350,28 @@ statguard.execute_iceberg(contract, table_path, snapshot_id=None,
                           reference_snapshot=None)
 statguard.list_iceberg_snapshots(table_path)
 
-# Cloud & SQL & Spark
-statguard.execute_cloud(contract, uri, reference_uri=None)     # S3, GCS, Azure
-statguard.execute_sql(contract, connection_string, query,       # All databases
-                      reference_query=None)
+# Cloud, SQL, Spark
+statguard.execute_cloud(contract, uri, reference_uri=None)
+statguard.execute_sql(contract, connection_string, query, reference_query=None)
 statguard.execute_spark(contract, spark_df, reference_spark_df=None)
 
 # Utilities
 statguard.validate_dsl(dsl_string)  # syntax check only
 
-# ValidationReport attributes
-report.passed          # bool
-report.health_score    # float [0, 1]
-report.grade           # str "A"/"B"/"C"/"D"/"F"
-report.row_count       # int
-report.violation_count # int
-report.duration_ms     # int
-report.violations()    # list[dict]
-report.drift_results() # list[dict]
+# ValidationReport
+report.passed            # bool
+report.health_score      # float [0, 1]
+report.grade             # "A" / "B" / "C" / "D" / "F"
+report.row_count         # int
+report.violation_count   # int
+report.duration_ms       # int
+report.violations()      # list[dict]
+report.drift_results()   # list[dict]
 report.column_profiles() # list[dict]
 report.to_json()
 report.to_json_pretty()
 report.to_prometheus()
-report.summary()       # one-line string
+report.summary()         # one-line string
 ```
 
 ---
@@ -452,6 +429,19 @@ report.summary()       # one-line string
 
 ---
 
+## Use cases
+
+| Use case | How |
+|---|---|
+| **dbt / Airflow pipeline gate** | `statguard validate --fail-on-warning` in task |
+| **ML feature drift monitor** | `stats { feature.mean drift < 0.05 }` + reference dataset |
+| **Lakehouse quality layer** | `execute_delta()` / `execute_iceberg()` on every write |
+| **Kafka / streaming quality** | `execute_streaming()` with micro-batch window |
+| **Prometheus scraping** | `--format prometheus` or `report.to_prometheus()` |
+| **CI data contract tests** | `statguard check` for DSL lint, `validate` for data |
+
+---
+
 ## Architecture
 
 ```
@@ -476,7 +466,7 @@ statguard/
     │   ├── _connectors.py     Cloud (S3/GCS/Azure), SQL (13 connectors), Spark
     │   └── _cli.py            CLI: validate, check commands
     └── docs/
-        └── FORMAT_COMPATIBILITY.md   Full connector/format matrix vs competitors
+        └── FORMAT_COMPATIBILITY.md
 ```
 
 ### Execution pipeline
@@ -503,39 +493,22 @@ DSL text  →  pest parser  →  DataContract AST
 
 ### Why it's fast
 
-- **Columnar execution** — every check operates on an entire Arrow column, not row by row
-- **Compiled DAG** — validation logic is a fixed execution plan, not interpreted rules
-- **Cost-ordered checks** — `null` (cost 1) before `regex` (cost 4) before `uniqueness` (cost 5); cheap failures abort expensive work early
-- **Rayon parallelism** — columns execute concurrently; scales with core count
+- **Columnar execution** — every check operates on an entire Arrow column, never row by row
+- **Compiled DAG** — validation logic is a fixed execution plan, not interpreted rules at runtime
+- **Cost-ordered checks** — `null` (cost 1) runs before `regex` (cost 4) before `uniqueness` (cost 5); cheap failures abort expensive work early
+- **Rayon parallelism** — columns execute concurrently, scaling with core count
 - **Zero-copy IO** — Arrow IPC and Parquet data never leaves the Arrow memory model
-- **HyperLogLog** — O(1) memory, ~0.8% error cardinality estimation for every column
+- **HyperLogLog** — O(1) memory, ~0.8% error rate for cardinality estimation on every column
 
 ---
 
-## Use cases
+## Dependencies and licensing
 
-| Use case | How |
-|---|---|
-| **dbt / Airflow pipeline gate** | `statguard validate --fail-on-warning` in task |
-| **ML feature drift monitor** | `stats { feature.mean drift < 0.05 }` + reference dataset |
-| **Lakehouse quality layer** | `execute_delta()` / `execute_iceberg()` on every write |
-| **Kafka / streaming quality** | `execute_streaming()` with micro-batch window |
-| **Prometheus scraping** | `--format prometheus` or `report.to_prometheus()` |
-| **CI data contract tests** | `statguard check` for DSL lint, `validate` for data |
+StatGuard is MIT licensed. All core dependencies use MIT, Apache-2.0, or BSD licenses.
 
----
+**Note on PostgreSQL support:** Using `execute_sql()` with PostgreSQL requires `psycopg2` (LGPL-2.1 with exceptions), which adds an LGPL component to your application. See [LICENSES.md](LICENSES.md) for full compliance details and impact on binary distributions.
 
-## Dependencies & Licensing
-
-StatGuard is **MIT licensed**. All core dependencies use MIT, Apache-2.0, or BSD licenses.
-
-**⚠️ Note on PostgreSQL support**: Using `execute_sql()` with PostgreSQL requires
-`psycopg2` (LGPL-2.1 with exceptions). This adds an LGPL component to your
-application. See [LICENSES.md](LICENSES.md) for full compliance details and
-impact on binary distributions.
-
-All optional features use OSI-approved open-source licenses only. Proprietary
-drivers (Oracle, SQL Server ODBC) are intentionally excluded.
+All optional features use OSI-approved open-source licenses only. Proprietary drivers (Oracle, SQL Server ODBC) are intentionally excluded.
 
 → Full license matrix: [LICENSES.md](LICENSES.md)
 
