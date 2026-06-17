@@ -1,0 +1,173 @@
+// StatGuard DSL Grammar (PEG)
+// Whitespace and comments are silently skipped everywhere except atoms.
+
+WHITESPACE = _{ " " | "\t" | "\r" | "\n" }
+COMMENT    = _{ "//" ~ (!"\n" ~ ANY)* ~ ("\n" | EOI) }
+
+// ── Primitives ────────────────────────────────────────────────────────────────
+
+identifier    = @{ ASCII_ALPHA ~ (ASCII_ALPHANUMERIC | "_")* }
+string_literal = @{ "\"" ~ inner_str ~ "\"" }
+inner_str     = @{ (!"\"" ~ ANY)* }
+number        = @{ "-"? ~ ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)? ~ (^"e" ~ ("+" | "-")? ~ ASCII_DIGIT+)? }
+boolean       = @{ "true" | "false" }
+literal_value = { string_literal | boolean | number }
+
+// ── Top-level ─────────────────────────────────────────────────────────────────
+
+contract    = { SOI ~ dataset_def* ~ EOI }
+
+dataset_def = {
+    "dataset" ~ identifier ~ "{"
+        ~ section*
+    ~ "}"
+}
+
+section = {
+    schema_section
+  | quality_section
+  | stats_section
+  | anomaly_section
+  | stream_section
+}
+
+// ── Schema ────────────────────────────────────────────────────────────────────
+
+schema_section = {
+    "schema" ~ "{"
+        ~ field_def*
+    ~ "}"
+}
+
+field_def = {
+    identifier ~ ":" ~ data_type ~ ("," ~ constraint)* ~ ","?
+}
+
+data_type = {
+    "datetime" | "string" | "float" | "bool" | "bytes" | "date" | "int"
+}
+
+constraint = {
+    between_constraint
+  | enum_constraint
+  | len_constraint
+  | regex_constraint
+  | min_constraint
+  | max_constraint
+  | coerce_constraint
+  | not_null
+  | unique
+  | positive
+  | negative
+  | primary_key
+  | foreign_key
+}
+
+not_null          = { "not_null" }
+unique            = { "unique" }
+positive          = { "positive" }
+negative          = { "negative" }
+primary_key       = { "primary_key" }
+foreign_key       = { "foreign_key(" ~ identifier ~ "." ~ identifier ~ ")" }
+coerce_constraint = { "coerce" }
+between_constraint = { "between(" ~ number ~ "," ~ number ~ ")" }
+min_constraint    = { "min=" ~ number }
+max_constraint    = { "max=" ~ number }
+len_constraint    = { "len(" ~ number ~ "," ~ number ~ ")" }
+regex_constraint  = { "regex=" ~ string_literal }
+enum_constraint   = { "enum=[" ~ string_literal ~ ("," ~ string_literal)* ~ "]" }
+
+// ── Quality rules ─────────────────────────────────────────────────────────────
+
+quality_section = {
+    "quality" ~ "{"
+        ~ (cross_column_rule | quality_rule)*
+    ~ "}"
+}
+
+quality_rule = {
+    severity_prefix? ~ quality_metric ~ comparison_op ~ number
+}
+
+// Cross-column conditional assertion:
+//   assert <col> <op> <value> when <col> <op> <value>
+// Example: assert amount > 0.0 when status == "paid"
+cross_column_rule = {
+    severity_prefix? ~
+    "assert" ~ identifier ~ comparison_op ~ literal_value ~
+    "when" ~ identifier ~ comparison_op ~ literal_value
+}
+
+severity_prefix = { "@" ~ severity_level ~ ":" }
+severity_level  = { "blocking" | "error" | "warning" | "info" }
+
+quality_metric = {
+    metric_fn ~ "(" ~ identifier ~ ")"
+}
+
+metric_fn = {
+    "completeness"
+  | "uniqueness"
+  | "validity"
+  | "consistency"
+  | "freshness"
+  | "non_null_rate"
+}
+
+comparison_op = { ">=" | "<=" | "==" | "!=" | ">" | "<" }
+
+// ── Stats / drift rules ───────────────────────────────────────────────────────
+
+stats_section = {
+    "stats" ~ "{"
+        ~ stats_rule*
+    ~ "}"
+}
+
+stats_rule = {
+    severity_prefix? ~ identifier ~ "." ~ stat_fn ~ "drift" ~ comparison_op ~ number
+}
+
+stat_fn = {
+    "median" | "mean" | "p999" | "p99" | "p95" | "p05" | "p01" | "std" | "min" | "max"
+}
+
+// ── Anomaly detection ─────────────────────────────────────────────────────────
+
+anomaly_section = {
+    "anomalies" ~ "{"
+        ~ anomaly_rule*
+    ~ "}"
+}
+
+anomaly_rule = {
+    severity_prefix? ~ anomaly_fn ~ "(" ~ identifier ~ ("," ~ named_arg)* ~ ")"
+}
+
+anomaly_fn = {
+    "detect_outliers"
+  | "detect_nulls"
+  | "detect_duplicates"
+  | "detect_pattern_breaks"
+  | "detect_cardinality_explosion"
+}
+
+named_arg = { identifier ~ "=" ~ (string_literal | number | boolean) }
+
+// ── Streaming config ──────────────────────────────────────────────────────────
+
+stream_section = {
+    "stream" ~ "{"
+        ~ stream_option*
+    ~ "}"
+}
+
+stream_option = {
+    stream_window
+  | stream_watermark
+  | stream_emit
+}
+
+stream_window     = { "window=" ~ string_literal }
+stream_watermark  = { "watermark=" ~ string_literal }
+stream_emit       = { "emit=" ~ string_literal }
