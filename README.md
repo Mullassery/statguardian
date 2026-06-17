@@ -361,9 +361,6 @@ See [BENCHMARKS.md](BENCHMARKS.md) for full methodology, scaling table, and repr
 | **Cloud** (S3, GCS, Azure) | via extras | ✓ native | ✗ | ✓ |
 | **Spark DataFrames** | ✓ | ✓ native | ✗ | ✓ Arrow bridge |
 | **SQL / warehouses** | via SQLAlchemy | 12 connectors | ✗ | 13 OSS connectors |
-| **Kafka** (roadmap) | ✗ | ✗ | ✗ | planned |
-| **Flink** (roadmap) | ✗ | ✗ | ✗ | planned |
-| **Airflow** (roadmap) | ✗ | partial | ✗ | planned |
 
 → Full matrix: [docs/FORMAT_COMPATIBILITY.md](docs/FORMAT_COMPATIBILITY.md)
 
