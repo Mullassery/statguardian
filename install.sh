@@ -1,12 +1,12 @@
 #!/usr/bin/env sh
-# StatGuard installer — detects pip or uv and installs the package.
+# Statguardian installer — detects pip or uv and installs the package.
 #
 # Usage:
-#   curl -sSfL https://raw.githubusercontent.com/Mullassery/statguard/main/install.sh | sh
+#   curl -sSfL https://raw.githubusercontent.com/Mullassery/statguardian/main/install.sh | sh
 
 set -e
 
-PACKAGE="statguard"
+PACKAGE="statguardian"
 
 echo "Installing $PACKAGE..."
 
@@ -28,5 +28,5 @@ else
 fi
 
 echo ""
-echo "StatGuard installed. Verify with:"
+echo "Statguardian installed. Verify with:"
 echo '  python -c "import statguard; print(statguard.__version__)"'
