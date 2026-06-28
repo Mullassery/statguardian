@@ -904,9 +904,17 @@ All optional features use OSI-approved open-source licenses only. Proprietary dr
 
 ---
 
+## Community
+
+- **GitHub Issues** — [Report bugs and request features](https://github.com/Mullassery/statguardian/issues)
+- **GitHub Discussions** — [Questions and best practices](https://github.com/Mullassery/statguardian/discussions)
+- **Code of Conduct** — [Be respectful and constructive](./CODE_OF_CONDUCT.md)
+
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md) and [AGENTS.md](AGENTS.md) for development setup and guidelines.
+
+For security issues, see [SECURITY.md](SECURITY.md).
 
 ```bash
 cargo test --workspace --exclude statguard
